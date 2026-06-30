@@ -1,4 +1,4 @@
-# DevHub 2.0 - 3-Tier DevSecOps Community Platform 🚀
+# DevHub 2.0 - 3-Tier DevSecOps Community Platform  🚀
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.0-brightgreen.svg?logo=springboot)](https://spring.io/projects/spring-boot)
 [![React](https://img.shields.io/badge/React-18-blue.svg?logo=react)](https://react.dev/)
