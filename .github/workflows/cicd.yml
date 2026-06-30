@@ -120,9 +120,10 @@ jobs:
 
       - name: OWASP Dependency Check
         working-directory: backend
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
-          mvn \
-          org.owasp:dependency-check-maven:check
+          mvn org.owasp:dependency-check-maven:check -DnvdApiKey=${{ secrets.NVD_API_KEY }}
 
       ########################################################
       ## Checkov Terraform
