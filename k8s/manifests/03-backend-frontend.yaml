@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devhub-backend
+  namespace: devhub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devhub-backend
+  template:
+    metadata:
+      labels:
+        app: devhub-backend
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: backend
+          image: kartavyanirwel/devhub-backend:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://mysql.devhub.svc.cluster.local:3306/devhub_db"
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef: { name: devhub-secrets, key: MYSQL_USER }
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: devhub-secrets, key: MYSQL_PASSWORD }
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef: { name: devhub-secrets, key: JWT_SECRET }
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "500m", memory: "1Gi" }
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: devhub
+spec:
+  selector:
+    app: devhub-backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devhub-frontend
+  namespace: devhub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devhub-frontend
+  template:
+    metadata:
+      labels:
+        app: devhub-frontend
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: frontend
+          image: kartavyanirwel/devhub-frontend:latest
+          ports:
+            - containerPort: 8080
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 101
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits: { cpu: "250m", memory: "256Mi" }
+          volumeMounts:
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devhub-frontend
+  namespace: devhub
+spec:
+  type: ClusterIP
+  selector:
+    app: devhub-frontend
+  ports:
+    - port: 80
+      targetPort: 8080

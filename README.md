@@ -1,166 +1,182 @@
 # DevHub 2.0 - 3-Tier DevSecOps Community Platform 🚀
 
-[![DevHub 2.0 DevSecOps Pipeline](https://github.com/kartavynirwel-code/DevHub2.0/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/kartavynirwel-code/DevHub2.0/actions)
-![License](https://img.shields.io/badge/License-MIT-crimson.svg)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.0-brightgreen.svg?logo=springboot)
-![React](https://img.shields.io/badge/React-18-blue.svg?logo=react)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-Production--Ready-blue.svg?logo=kubernetes)
-![Terraform](https://img.shields.io/badge/Terraform-IaC-purple.svg?logo=terraform)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.0-brightgreen.svg?logo=springboot)](https://spring.io/projects/spring-boot)
+[![React](https://img.shields.io/badge/React-18-blue.svg?logo=react)](https://react.dev/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-EKS-blue.svg?logo=kubernetes)](https://aws.amazon.com/eks/)
+[![Terraform](https://img.shields.io/badge/Terraform-IaC-purple.svg?logo=terraform)](https://www.terraform.io/)
+[![Docker](https://img.shields.io/badge/Docker-Multi--Stage-blue.svg?logo=docker)](https://www.docker.com/)
 
-DevHub 2.0 is a highly secure, containerized, and orchestrated 3-tier developer discussion portal (Reddit-inspired) built to showcase modern **DevSecOps and GitOps** practices. The architecture splits the original monolith into a decoupled **React SPA frontend** (hosted via Nginx) and a **Spring Boot REST backend** backed by **MySQL**. 
-
-This repository serves as a production-grade portfolio demonstrating Infrastructure-as-Code (IaC), Kubernetes state orchestration, network isolation, and a security-first CI/CD workflow.
+DevHub 2.0 is a Reddit-inspired developer discussion platform, rebuilt as a **decoupled 3-tier architecture** to demonstrate production-grade DevSecOps and GitOps practices. The original Spring Boot + Thymeleaf monolith was split into a **React SPA frontend** (served via unprivileged Nginx) and a **Spring Boot REST API backend** (JWT auth) backed by **MySQL**, all deployed on **AWS EKS** provisioned entirely through **Terraform**.
 
 ---
 
 ## 🏗️ System Architecture
 
-The platform follows a classic 3-tier web architecture hardened with secure runtime parameters:
-
-```mermaid
-flowchart TD
-    Client([🌐 Client Browser]) <--> |Port 5173 / 8080| Frontend[🐳 Nginx-React Frontend Container]
-    Frontend <--> |Port 8080| Backend[🐳 Spring Boot API Container]
-    Backend <--> |Port 3306| DB[🐳 MySQL Database]
-    
-    subgraph Security Isolation
-        Backend
-        DB
-    end
+```
+                              ┌─────────────────────┐
+                              │   Client Browser     │
+                              └──────────┬───────────┘
+                                         │
+                              ┌──────────▼───────────┐
+                              │  Nginx (unprivileged) │   Public/Private Subnet
+                              │  React SPA :8080      │   (EKS Pod)
+                              └──────────┬───────────┘
+                                         │ proxy_pass /api
+                              ┌──────────▼───────────┐
+                              │  Spring Boot REST API │   Private Subnet
+                              │  JWT Auth :8080        │   (EKS Pod)
+                              └──────────┬───────────┘
+                                         │ NetworkPolicy-restricted
+                              ┌──────────▼───────────┐
+                              │  MySQL 8.0             │   Private Subnet
+                              │  gp3 EBS-backed PVC     │   (EKS Pod)
+                              └────────────────────────┘
 ```
 
-* **Frontend:** React (Vite) styled with a dark-theme-first Obsidian & Crimson Red layout. Served via `nginx-unprivileged` running as User `101` (listening internally on Port `8080`) to enforce non-root boundaries.
-* **Backend:** Spring Boot REST API with stateless **JWT Bearer Token** authentication, BCrypt encryption, custom thread-safe database transaction flushes, and dynamic user karma synchronization.
-* **Database:** MySQL for both local development and Kubernetes (EKS) cloud deployments (leveraging AWS EBS StorageClass gp3 for state persistence).
+- **Frontend:** React (Vite), served via `nginx-unprivileged` running as non-root user `101`.
+- **Backend:** Spring Boot REST API, stateless JWT auth, BCrypt password hashing, Hibernate/JPA with MySQL.
+- **Database:** MySQL 8.0 on a `gp3` EBS-backed `PersistentVolumeClaim`.
+- **Infrastructure:** Custom VPC (2 public + 2 private subnets, single NAT Gateway), AWS EKS, Terraform-managed end-to-end.
 
 ---
 
-## 📂 Repository Layout
+## ☁️ Infrastructure (Terraform → AWS EKS)
 
-```text
-DevHub2.0/
-├── .github/workflows/       # GitHub Actions DevSecOps CI/CD pipeline definition (Java + Node)
-├── backend/                  # Spring Boot REST API (Java 21)
-│   ├── src/                  # Source files (Entities, Repositories, JWT Filters, Controllers)
-│   ├── Dockerfile            # Multi-stage JDK 21 compilation container image (unprivileged)
-│   └── pom.xml               # Maven builds & JJWT dependency tree
-├── frontend/                 # React SPA Client
-│   ├── src/                  # Components, Hooks, Custom Code Parser, and Obsidian styling
-│   ├── Dockerfile            # Secure multi-stage build using unprivileged Nginx (Port 8080)
-│   ├── nginx.conf            # Nginx config handling client-side SPA routing & API proxying
-│   └── package.json          # Node dependencies
-├── k8s/                      # Kubernetes Orchestration Manifests (YAMLs)
-│   └── devhub.yaml           # Namespace, Opaque Secrets, gp3 StorageClass, PVCs, Deployments & NetworkPolicies
-├── terraform/                # Infrastructure-as-Code (IaC)
-│   ├── main.tf               # AWS EKS cluster, Node Groups, Karpenter & VPC provisioning
-│   ├── variables.tf          # Configurable deployment inputs
-│   └── terraform.tfvars      # Local deployment overrides
-├── .checkov.yml              # Checkov compliance scan exceptions configuration
-├── .gitignore                # DevSecOps-aligned git filtering rules (zero leakage policy)
-└── docker-compose.yml        # Local multi-container development orchestrator
+All infrastructure is provisioned declaratively — no manual console clicks.
+
+| Component | Details |
+|---|---|
+| VPC | Custom, 2 public + 2 private subnets across 2 AZs |
+| NAT | Single NAT Gateway (cost-optimized for a portfolio deployment) |
+| EKS Cluster | `v1.30`, public + private API endpoint access |
+| Node Group | Managed node group, `c7i-flex.large` (2 vCPU / 4 GiB) |
+| Add-ons | `aws-ebs-csi-driver` (PVC support), `vpc-cni` with NetworkPolicy enforcement enabled |
+| IAM | Least-privilege roles for cluster control plane and worker nodes |
+
+```bash
+cd terraform/
+terraform init
+terraform plan
+terraform apply
+aws eks update-kubeconfig --region ap-south-1 --name devhub2-eks
 ```
+
+> **Cost note:** EKS control plane + NAT Gateway are billed regardless of usage. This project is deployed on-demand for testing/demos and destroyed afterward via `terraform destroy` — it is not kept running 24/7.
 
 ---
 
-## 🛡️ DevSecOps & Security Hardening Features
+## ☸️ Kubernetes Deployment
 
-This project implements advanced safety guidelines across application, delivery, and infrastructure layers:
+```bash
+kubectl apply -f k8s/manifests/01-namespace-secret.yaml
+kubectl apply -f k8s/manifests/02-mysql.yaml
+kubectl apply -f k8s/manifests/03-backend-frontend.yaml
+kubectl apply -f k8s/manifests/04-networkpolicy.yaml
+```
 
-### 1. Shift-Left Security CI/CD Pipeline (GitHub Actions)
-The pipeline scans code, dependencies, configurations, and containers on every push:
-* **Linting:** Validates React code with ESLint, analyzes Java backend files during compilation, and checks Dockerfile instructions with `Hadolint` (failing on unsafe directives).
-* **Software Composition Analysis (SCA):** Audits frontend npm dependencies (`npm audit`) and backend Java dependencies to detect and stop builds on high-severity CVEs.
-* **IaC Compliance Scans (Checkov):** Scans Kubernetes manifests (`k8s/devhub.yaml`) and Terraform files to prevent security misconfigurations (e.g., public endpoints, privileged containers, missing resource tags).
-* **Container Vulnerability Scanning (Trivy):** Scans compiled backend and frontend images for OS and library vulnerabilities, terminating builds if critical vulnerabilities exist.
-* **GitOps Automations:** Upon successful commits to the `main` branch, the pipeline automatically updates the container image tags inside `k8s/devhub.yaml` with the commit hash, triggering rolling updates in EKS.
+### Security hardening applied to every pod
+- `runAsNonRoot: true` — Nginx runs as UID `101`, Spring Boot/Tomcat as UID `1000`
+- `allowPrivilegeEscalation: false`
+- `readOnlyRootFilesystem: true` with explicit `emptyDir` volumes for the few paths each runtime needs to write to (Nginx cache/run, Tomcat `/tmp`)
+- `capabilities.drop: ["ALL"]`
+- `automountServiceAccountToken: false` for app pods that don't need the Kubernetes API
+- **NetworkPolicies** restricting traffic: MySQL only accepts connections from the backend; the backend only accepts connections from the frontend
 
-### 2. Hardened Kubernetes Pod Security
-* **Network Isolation (NetworkPolicies):** Restricts network access. The MySQL database only accepts inbound traffic from the backend service on port `3306`. The backend only accepts traffic from the frontend on port `8080`.
-* **Non-Root Execution Contexts:** Containers run with unprivileged user IDs (e.g. Nginx runs as `101`, Java JRE runs as `1000`). Root privileges (`runAsNonRoot: true`) and privilege escalation (`allowPrivilegeEscalation: false`) are disabled.
-* **Immutable Root Filesystem:** Backend containers run with a read-only filesystem (`readOnlyRootFilesystem: true`) to prevent attackers from executing local write exploits.
-* **Least-Privilege Capabilities:** Unused Linux kernel capabilities are explicitly dropped (`capabilities.drop: [ALL]`).
-* **Safe Mounting:** Auto-mounting Kubernetes API credentials (`automountServiceAccountToken: false`) is disabled for application pods that do not need to query the Kubernetes control plane.
+---
+
+## 📸 Proof of Deployment
+
+**Live cluster — pods, services, deployments, NetworkPolicies, and EKS cluster status:**
+
+![Kubernetes cluster status](screenshots/k8s-cluster-status.png)
+
+**EKS node details and cluster API confirmation:**
+
+![EKS nodes and cluster info](screenshots/eks-nodes-cluster-info.png)
+
+**Application working end-to-end — authenticated session on the deployed app:**
+
+![DevHub 2.0 logged in](screenshots/devhub-app-login-success.png)
+
+---
+
+## 🐛 Real Debugging Journey
+
+This section documents actual issues hit during deployment — not a polished happy-path. Each one reflects a genuine production-relevant gotcha.
+
+| Issue | Root Cause | Fix |
+|---|---|---|
+| `aws_eks_addon.ebs_csi` stuck creating, `no EC2 IMDS role found` | EKS managed node groups default IMDS hop limit to `1`, blocking pod-level (not just host-level) access to instance metadata | Added a custom `aws_launch_template` with `http_put_response_hop_limit = 2` |
+| Frontend pod `CrashLoopBackOff`, exit code 1 | `readOnlyRootFilesystem: true` blocked Nginx from writing to `/var/cache/nginx`, `/var/run` | Added `emptyDir` volumes for Nginx's runtime write paths |
+| Backend pod `CrashLoopBackOff`, `WebServerException: Unable to create tempDir` | Same root cause as above — Tomcat needs to write to `/tmp` at startup | Added an `emptyDir` volume mounted at `/tmp` |
+| Frontend crashed at boot: `host not found in upstream "backend"` | `nginx.conf`'s hardcoded upstream hostname (`backend`) didn't match the Kubernetes Service name (`devhub-backend`) | Renamed the backend Service to `backend` to match the baked-in Nginx config |
+| Signup/Login returned `403 Forbidden` despite `permitAll()` on `/api/auth/**` | Spring Security's `CorsFilter` evaluates **before** authorization rules; `localhost:8080` (the port-forward origin used for testing) wasn't in the backend's `allowedOrigins` list | Added `http://localhost:8080` to `SecurityConfig.java`'s CORS configuration |
+| `kubectl apply` repeatedly timed out (`context deadline exceeded`) | Unstable local network (33% packet loss measured via `ping`), not a cluster issue | Split the manifest into smaller files, applied with `--request-timeout=300s`, verified each resource individually before retrying |
+| `npm ci` failed during Docker build: lock file out of sync | `package.json` was edited without regenerating `package-lock.json` | `rm -rf node_modules package-lock.json && npm install` to regenerate a synced lock file |
+| Gitleaks blocked commits for `terraform.tfstate` and placeholder secrets | `.gitignore` pattern was case-sensitive (`terraform/` vs actual `Terraform/` folder); demo secret values still matched entropy-based detection rules | Fixed `.gitignore` to be case-insensitive for the Terraform folder; moved real K8s secrets out of version control into a `.example` template |
+
+**Key takeaway from this exercise:** `readOnlyRootFilesystem: true` is a strong security control, but every runtime (Nginx, Tomcat/JVM) has its own set of paths it needs to write to at startup. Test containers locally with `docker run --read-only` before deploying to catch these early, rather than debugging it pod-by-pod in the cluster.
 
 ---
 
 ## ⚙️ Running Locally
 
 ### Prerequisites
-* Java 21 & Maven 3.9+
-* Node.js 20+
-* Local MySQL Instance OR Docker installed
+- Java 21 & Maven 3.9+
+- Node.js 20+
+- Docker
 
-### Option A: Local Host Execution (For Active Development)
-
-1. **Database Setup:** Run MySQL locally and execute:
-   ```sql
-   CREATE DATABASE devhub_db;
-   ```
-2. **Launch Backend REST API:**
-   ```bash
-   cd backend
-   mvn spring-boot:run
-   ```
-3. **Launch React Client:**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-   Navigate to `http://localhost:5173`.
-
-### Option B: Docker Compose (Unified Environment)
-Orchestrates backend, frontend, and MySQL in a containerized environment with database healthchecks:
+### Docker Compose (recommended for local dev)
 ```bash
 docker compose up --build
 ```
-Open `http://localhost:5173` to test the application.
+Open `http://localhost:5173`.
 
 ---
 
-## ☸️ Kubernetes Deployment (AWS EKS)
+## 🛡️ DevSecOps Pipeline
 
-The single-file manifest `k8s/devhub.yaml` provisions the namespace, storage, secrets, and pods:
+GitHub Actions CI/CD pipeline runs on every push:
 
-### 1. Provision Cloud Infrastructure (Terraform)
-Deploy AWS EKS, Karpenter nodes, and networking elements:
-```bash
-cd terraform
-terraform init
-terraform plan
-terraform apply --auto-approve
 ```
-
-### 2. Deploy Manifests to EKS
-Configure your cluster context and apply the manifests:
-```bash
-kubectl apply -f k8s/devhub.yaml
-```
-
-### 3. Port-Forward to Access Application
-Since LoadBalancers can be restricted in development accounts, secure internal access using port forwarding:
-```bash
-# Forward frontend traffic locally
-kubectl port-forward svc/devhub-frontend 8080:80 -n devhub
-```
-Navigate to `http://localhost:8080` in your web browser.
-
----
-
-## 🛠️ DevSecOps Pipeline Stages
-
-The GitHub Actions pipeline automates delivery checks sequentially:
-
-```text
 [Push/PR] ──► 1. 🔍 Linting (Hadolint + ESLint)
-               └──► 2. 🛡️ SCA Security Audits (npm audit + Maven Dependency Scan)
-                     └──► 3. 🏗️ IaC Scans (Checkov)
-                           └──► 4. 🐳 Multi-Stage Docker Builds (provenance + SBOM)
+               └──► 2. 🛡️ SCA Audits (npm audit + Maven dependency scan)
+                     └──► 3. 🏗️ IaC Scans (Checkov on Terraform + K8s manifests)
+                           └──► 4. 🐳 Multi-Stage Docker Builds
                                  └──► 5. 🔬 Image Scans (Trivy)
-                                       └──► 6. 🚀 GitOps Update (Auto-patch Manifests)
+                                       └──► 6. 🔐 Secret Scans (Gitleaks)
 ```
 
-To run checks locally, execute:
-* **Trivy Image Scan:** `trivy image devhub-backend:latest`
-* **Checkov Manifest Scan:** `checkov -d k8s/`
-* **Hadolint Dockerfile Scan:** `hadolint backend/Dockerfile`
+Run checks locally:
+```bash
+trivy image kartavyanirwel/devhub-backend:latest
+checkov -d terraform/
+checkov -d k8s/
+gitleaks detect
+hadolint backend/Dockerfile
+```
+
+---
+
+## 📂 Repository Layout
+
+```
+DevHub-2.0/
+├── backend/                  # Spring Boot REST API (Java 21)
+├── frontend/                 # React SPA
+├── terraform/                # VPC, EKS, IAM, add-ons - all infra as code
+├── k8s/manifests/            # Namespace, Secret, MySQL, Backend, Frontend, NetworkPolicies
+├── screenshots/              # Deployment proof
+├── docker-compose.yml        # Local dev orchestration
+└── .gitleaks.toml            # Secret-scanning allowlist config
+```
+
+---
+
+## 🧰 Tech Stack
+
+**Backend:** Java 21, Spring Boot 3.3, Spring Security (JWT), Hibernate/JPA, MySQL 8.0
+**Frontend:** React (Vite), Nginx (unprivileged)
+**Infrastructure:** Terraform, AWS EKS, AWS VPC, IAM
+**DevSecOps:** Gitleaks, Trivy, Checkov, Hadolint, GitHub Actions
+**Containerization:** Docker (multi-stage builds), Docker Hub
