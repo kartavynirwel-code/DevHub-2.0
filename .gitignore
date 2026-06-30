@@ -180,3 +180,8 @@ kubeconfig
 
 k8s/manifests/main.yaml
 !k8s/manifests/main.yaml.example
+
+
+k8s/manifests/devhub.yaml
+k8s/manifests/01-namespace-secret.yaml
+!k8s/manifests/main.yaml.example

@@ -23,6 +23,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - JWT_SECRET=9b4a942c0371414747bb489aa39378d37ce2f4ec909dc712e22f1fe57fb7b59a
       - DB_HOST=db
       - DB_PORT=3306
       - DB_NAME=devhub_db
@@ -31,6 +32,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    
 
   frontend:
     build: ./frontend
