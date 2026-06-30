@@ -96,7 +96,7 @@ kubectl apply -f k8s/manifests/04-networkpolicy.yaml
 
 **Application working end-to-end — authenticated session on the deployed app:**
 
-![DevHub 2.0 logged in](screenshots/devhub-app-login-success.png)
+![DevHub 2.0 logged in](screenshots/devhub-app-login-succes.png)
 
 ---
 
