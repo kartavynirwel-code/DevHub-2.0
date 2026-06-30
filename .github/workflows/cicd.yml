@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   security-events: write
+  actions: read
 
 concurrency:
   group: devhub-${{ github.ref }}
@@ -217,6 +218,7 @@ jobs:
         with:
           name: backend-jar
           path: backend/target/*.jar
+          retention-days: 7
 
       ########################################################
       ## Upload Frontend Artifact
@@ -227,6 +229,7 @@ jobs:
         with:
           name: frontend-build
           path: frontend/dist
+          retention-days: 7
 
 ##############################################################
 ###################### DOCKER + TRIVY #########################
@@ -257,26 +260,38 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       ########################################################
-      ## Build Backend Image
+      ## Build Backend Image (with GHA layer cache)
       ########################################################
 
       - name: Build Backend Image
-        run: |
-          docker build \
-            -t $BACKEND_IMAGE:${{ github.sha }} \
-            -t $BACKEND_IMAGE:latest \
-            backend
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+            ${{ env.BACKEND_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       ########################################################
-      ## Build Frontend Image
+      ## Build Frontend Image (with GHA layer cache)
       ########################################################
 
       - name: Build Frontend Image
-        run: |
-          docker build \
-            -t $FRONTEND_IMAGE:${{ github.sha }} \
-            -t $FRONTEND_IMAGE:latest \
-            frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+            ${{ env.FRONTEND_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       ########################################################
       ## Trivy Backend Scan
@@ -389,6 +404,8 @@ jobs:
           tags: |
             ${{ env.BACKEND_IMAGE }}:latest
             ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       ########################################################
       ## Build & Push Frontend
@@ -403,6 +420,8 @@ jobs:
           tags: |
             ${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       ########################################################
       ## Job Summary
@@ -431,102 +450,3 @@ jobs:
             echo "- $BACKEND_IMAGE:${{ github.sha }}"
             echo "- $FRONTEND_IMAGE:${{ github.sha }}"
           } >> $GITHUB_STEP_SUMMARY
-
-##############################################################
-##################### OPTIONAL IMPROVEMENTS ##################
-##############################################################
-
-# Add these permissions at the top if you later enable
-# GitHub Security SARIF uploads.
-
-permissions:
-  contents: read
-  security-events: write
-  actions: read
-
-##############################################################
-#################### RETENTION SETTINGS ######################
-##############################################################
-
-# Wherever you use upload-artifact, add:
-
-retention-days: 7
-
-##############################################################
-##################### BUILDX CACHE ###########################
-##############################################################
-
-# Replace your Docker Build step with this if you want
-# Docker layer caching.
-
-- name: Set up Docker Buildx
-  uses: docker/setup-buildx-action@v3
-
-- name: Build Backend Image
-  uses: docker/build-push-action@v6
-  with:
-    context: backend
-    file: backend/Dockerfile
-    push: false
-    tags: ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-    cache-from: type=gha
-    cache-to: type=gha,mode=max
-
-- name: Build Frontend Image
-  uses: docker/build-push-action@v6
-  with:
-    context: frontend
-    file: frontend/Dockerfile
-    push: false
-    tags: ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-    cache-from: type=gha
-    cache-to: type=gha,mode=max
-
-##############################################################
-##################### MAVEN CACHE ############################
-##############################################################
-
-- name: Setup Java
-  uses: actions/setup-java@v4
-  with:
-    distribution: temurin
-    java-version: 21
-    cache: maven
-
-##############################################################
-###################### NODE CACHE ############################
-##############################################################
-
-- name: Setup Node
-  uses: actions/setup-node@v4
-  with:
-    node-version: 20
-    cache: npm
-    cache-dependency-path: frontend/package-lock.json
-
-##############################################################
-#################### PIPELINE SUMMARY ########################
-##############################################################
-
-- name: Final Summary
-  run: |
-    {
-      echo "# 🚀 DevHub 2.0 Pipeline"
-      echo ""
-      echo "## Completed Stages"
-      echo "- ✅ Hadolint"
-      echo "- ✅ Oxlint"
-      echo "- ✅ npm audit"
-      echo "- ✅ OWASP Dependency Check"
-      echo "- ✅ Checkov"
-      echo "- ✅ Spring Boot Build"
-      echo "- ✅ React Build"
-      echo "- ✅ Docker Build"
-      echo "- ✅ Trivy"
-      echo "- ✅ Gitleaks"
-      echo "- ✅ Docker Push"
-      echo ""
-      echo "Commit: ${{ github.sha }}"
-      echo "Branch: ${{ github.ref_name }}"
-      echo "Triggered By: ${{ github.actor }}"
-    } >> $GITHUB_STEP_SUMMARY
