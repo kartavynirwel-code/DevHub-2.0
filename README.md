@@ -61,7 +61,7 @@ terraform apply
 aws eks update-kubeconfig --region ap-south-1 --name devhub2-eks
 ```
 
-> **Cost note:** EKS control plane + NAT Gateway are billed regardless of usage. This project is deployed on-demand for testing/demos and destroyed afterward via `terraform destroy` — it is not kept running 24/7.
+> **Cost note:** EKS control plane + NAT Gateway are billed regardless of usage. This project is deployed on-demand for testing/demos and destroyed afterward via `terraform destroy` — it is not kept running 24/7
 
 ---
 
