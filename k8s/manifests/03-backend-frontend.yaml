@@ -115,7 +115,7 @@ metadata:
   name: devhub-frontend
   namespace: devhub
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app: devhub-frontend
   ports:
