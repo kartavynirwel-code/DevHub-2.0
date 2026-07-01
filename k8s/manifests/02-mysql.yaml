@@ -2,8 +2,7 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: gp3
-provisioner: ebs.csi.aws.com
-volumeBindingMode: WaitForFirstConsumer
+provisioner: rancher.io/local-path
 parameters:
   type: local-path
 
