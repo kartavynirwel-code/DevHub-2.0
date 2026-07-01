@@ -1,12 +1,3 @@
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: gp3
-provisioner: rancher.io/local-path
-parameters:
-  type: local-path
-
----
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -15,7 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: gp3
+  storageClassName: local-path
   resources:
     requests:
       storage: 5Gi
@@ -44,22 +35,34 @@ spec:
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
-                secretKeyRef: { name: devhub-secrets, key: MYSQL_ROOT_PASSWORD }
+                secretKeyRef:
+                  name: devhub-secrets
+                  key: MYSQL_ROOT_PASSWORD
             - name: MYSQL_DATABASE
               valueFrom:
-                secretKeyRef: { name: devhub-secrets, key: MYSQL_DATABASE }
+                secretKeyRef:
+                  name: devhub-secrets
+                  key: MYSQL_DATABASE
             - name: MYSQL_USER
               valueFrom:
-                secretKeyRef: { name: devhub-secrets, key: MYSQL_USER }
+                secretKeyRef:
+                  name: devhub-secrets
+                  key: MYSQL_USER
             - name: MYSQL_PASSWORD
               valueFrom:
-                secretKeyRef: { name: devhub-secrets, key: MYSQL_PASSWORD }
+                secretKeyRef:
+                  name: devhub-secrets
+                  key: MYSQL_PASSWORD
           volumeMounts:
             - name: mysql-storage
               mountPath: /var/lib/mysql
           resources:
-            requests: { cpu: "250m", memory: "512Mi" }
-            limits: { cpu: "500m", memory: "1Gi" }
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
       volumes:
         - name: mysql-storage
           persistentVolumeClaim:
