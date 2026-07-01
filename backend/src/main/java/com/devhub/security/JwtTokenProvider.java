@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
+
 import javax.crypto.SecretKey;
+
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 
@@ -23,8 +26,8 @@ public class JwtTokenProvider {
     private long jwtExpirationInMs;
 
     private SecretKey key() {
-        return Keys.hmacShaKeyFor(java.util.HexFormat.of().parseHex(jwtSecret));
-    }
+    return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+}
 
     // Generate JWT token
     public String generateToken(Authentication authentication) {
