@@ -189,6 +189,26 @@ pipeline {
                 """
             }
         }
+        stage('DAST - ZAP Baseline Scan') {
+            steps {
+                sh """
+                    docker run --rm -v \$(pwd):/zap/wrk/:rw \
+                    zaproxy/zap-stable zap-baseline.py \
+                    -t http://13.200.73.146:31151/ \
+                    -r zap-report.html \
+                    -I
+                    """
+                }
+        }
+        stage('Publish ZAP Report') {
+            steps {
+                publishHTML(target: [
+                    reportDir: '.',
+                    reportFiles: 'zap-report.html',
+                    reportName: 'ZAP DAST Report'
+                ])
+                }
+        }
     }
 
     post {
