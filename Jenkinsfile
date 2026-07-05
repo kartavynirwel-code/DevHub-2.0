@@ -199,24 +199,10 @@ pipeline {
             zaproxy/zap-stable zap-baseline.py \
             -t http://13.200.73.146:31151/ \
             -r zap-report.html \
-            -I -d > zap-full-debug.log 2>&1 || true
-            
-            echo "===== FULL ZAP LOG START ====="
-            cat zap-full-debug.log
-            echo "===== FULL ZAP LOG END ====="
+            -I -m 1
         '''
     }
 }
-        
-        stage('Publish ZAP Report') {
-            steps {
-                publishHTML(target: [
-                    reportDir: '.',
-                    reportFiles: 'zap-report.html',
-                    reportName: 'ZAP DAST Report'
-                ])
-                }
-        }
     }
 
     post {
