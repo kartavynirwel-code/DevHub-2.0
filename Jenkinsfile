@@ -11,6 +11,8 @@ pipeline {
 
         K8S_NAMESPACE   = 'devhub'
         KUBECONFIG      = '/var/lib/jenkins/.kube/config'
+
+        SCANNER_HOME    = tool 'sonar-scanner'
     }
 
     options {
@@ -24,6 +26,29 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('SAST - SonarQube Scan') {
+            steps {
+                withSonarQubeEnv('sonar-server') {
+                    withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
+                        sh """
+                            ${SCANNER_HOME}/bin/sonar-scanner \
+                            -Dsonar.projectKey=devhub-2.0 \
+                            -Dsonar.sources=. \
+                            -Dsonar.login=${SONAR_TOKEN}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
