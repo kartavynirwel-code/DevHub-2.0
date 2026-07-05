@@ -57,14 +57,17 @@ pipeline {
         }
         stage('SCA - OWASP Dependency Check') {
              steps {
-                dependencyCheck additionalArguments: '''
+                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                dependencyCheck additionalArguments: """
                 --scan .
                 --format HTML
                 --format XML
                 --project devhub-2.0
-                ''', odcInstallation: 'dependency-check'
-            }   
+                --nvdApiKey ${NVD_API_KEY}
+                """, odcInstallation: 'dependency-check'
+            }
         }
+    }
 
         stage('Publish Dependency Check Report') {
             steps {
