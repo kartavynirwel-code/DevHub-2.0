@@ -190,17 +190,17 @@ pipeline {
             }
         }
         stage('DAST - ZAP Baseline Scan') {
-    steps {
+         steps {
         sh """
-    docker run --rm -u \$(id -u):\$(id -g) \
-    --network host \
-    -e HOME=/zap/wrk \
-    -v \$(pwd):/zap/wrk/:rw \
-    zaproxy/zap-stable zap-baseline.py \
-    -t http://13.200.73.146:31151/ \
-    -r zap-report.html \
-    -I
-"""
+            docker run --rm -u \$(id -u):\$(id -g) \
+            --network host \
+            -e HOME=/zap/wrk \
+            -v \$(pwd):/zap/wrk/:rw \
+            zaproxy/zap-stable zap-baseline.py \
+            -t http://13.200.73.146:31151/ \
+            -r zap-report.html \
+            -I -d
+        """
     }
 }
         stage('Publish ZAP Report') {
