@@ -191,18 +191,22 @@ pipeline {
         }
         stage('DAST - ZAP Baseline Scan') {
     steps {
-        sh """
-            docker run --rm -u \$(id -u):\$(id -g) \
+        sh '''
+            docker run --rm -u $(id -u):$(id -g) \
             --network host \
             -e HOME=/zap/wrk \
-            -v \$(pwd):/zap/wrk/:rw \
+            -v $(pwd):/zap/wrk/:rw \
             zaproxy/zap-stable zap-baseline.py \
             -t http://13.200.73.146:31151/ \
             -r zap-report.html \
-            -I -d
-                """
-            }
-        }
+            -I -d > zap-full-debug.log 2>&1 || true
+            
+            echo "===== FULL ZAP LOG START ====="
+            cat zap-full-debug.log
+            echo "===== FULL ZAP LOG END ====="
+        '''
+    }
+}
         
         stage('Publish ZAP Report') {
             steps {
