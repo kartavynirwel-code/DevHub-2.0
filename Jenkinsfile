@@ -30,19 +30,23 @@ pipeline {
         }
 
         stage('SAST - SonarQube Scan') {
-            steps {
-                withSonarQubeEnv('sonar-server') {
-                    withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
-                        sh """
-                            ${SCANNER_HOME}/bin/sonar-scanner \
-                            -Dsonar.projectKey=devhub-2.0 \
-                            -Dsonar.sources=. \
-                            -Dsonar.login=${SONAR_TOKEN}
-                        """
-                    }
-                }
+        steps {
+            dir('backend') {
+            sh 'mvn clean compile -DskipTests'
+        }
+            withSonarQubeEnv('sonar-server') {
+            withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
+                sh """
+                    ${SCANNER_HOME}/bin/sonar-scanner \
+                    -Dsonar.projectKey=devhub-2.0 \
+                    -Dsonar.sources=. \
+                    -Dsonar.java.binaries=backend/target/classes \
+                    -Dsonar.token=${SONAR_TOKEN}
+                """
             }
         }
+    }
+}
 
         stage('Quality Gate') {
             steps {
