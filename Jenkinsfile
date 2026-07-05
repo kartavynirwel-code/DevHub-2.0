@@ -191,7 +191,7 @@ pipeline {
         }
         stage('DAST - ZAP Baseline Scan') {
          steps {
-        sh """
+                sh """
             docker run --rm -u \$(id -u):\$(id -g) \
             --network host \
             -e HOME=/zap/wrk \
@@ -199,7 +199,7 @@ pipeline {
             zaproxy/zap-stable zap-baseline.py \
             -t http://13.200.73.146:31151/ \
             -r zap-report.html \
-            -I -d
+            -I -T 5
         """
     }
 }
