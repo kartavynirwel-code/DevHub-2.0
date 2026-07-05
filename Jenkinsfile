@@ -55,6 +55,22 @@ pipeline {
                 }
             }
         }
+        stage('SCA - OWASP Dependency Check') {
+             steps {
+                dependencyCheck additionalArguments: '''
+                --scan .
+                --format HTML
+                --format XML
+                --project devhub-2.0
+                ''', odcInstallation: 'dependency-check'
+            }   
+        }
+
+        stage('Publish Dependency Check Report') {
+            steps {
+                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+            }
+        }
 
         stage('Build Backend Image') {
             steps {
