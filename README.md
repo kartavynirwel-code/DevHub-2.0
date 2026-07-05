@@ -6,7 +6,7 @@
 [![Terraform](https://img.shields.io/badge/Terraform-IaC-purple.svg?logo=terraform)](https://www.terraform.io/)
 [![Docker](https://img.shields.io/badge/Docker-Multi--Stage-blue.svg?logo=docker)](https://www.docker.com/)
 
-DevHub 2.0 is a Reddit-inspired developer discussion platform, rebuilt as a **decoupled 3-tier architecture** to demonstrate production-grade DevSecOps and GitOps practices. The original Spring Boot + Thymeleaf monolith was split into a **React SPA frontend** (served via unprivileged Nginx) and a **Spring Boot REST API backend** (JWT auth) backed by **MySQL**, all deployed on **AWS EKS** provisioned entirely through **Terraform**.
+DevHub 2.o is a Reddit-inspired developer discussion platform, rebuilt as a **decoupled 3-tier architecture** to demonstrate production-grade DevSecOps and GitOps practices. The original Spring Boot + Thymeleaf monolith was split into a **React SPA frontend** (served via unprivileged Nginx) and a **Spring Boot REST API backend** (JWT auth) backed by **MySQL**, all deployed on **AWS EKS** provisioned entirely through **Terraform**.
 
 ---
 
