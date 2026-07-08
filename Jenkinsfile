@@ -141,37 +141,27 @@ pipeline {
             }
         }
         stage('Update Manifest Repo') {
-            steps {
-              withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-               sh """
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+            sh """
                 git config user.email "jenkins@devhub.com"
                 git config user.name "Jenkins CI"
+
+                git fetch origin manifests
+                git checkout manifests
+                git pull origin manifests
 
                 sed -i "s|image: .*devhub-backend.*|image: ${BACKEND_IMAGE}:${IMAGE_TAG}|" k8s/manifests/03-backend-frontend.yaml
                 sed -i "s|image: .*devhub-frontend.*|image: ${FRONTEND_IMAGE}:${IMAGE_TAG}|" k8s/manifests/03-backend-frontend.yaml
 
                 git add k8s/manifests/03-backend-frontend.yaml
                 git commit -m "CI: update backend/frontend image to ${IMAGE_TAG} [skip ci]"
-                git push https://${GIT_USER}:${GIT_PASS}@github.com/kartavynirwel-code/DevHub-2.0.git HEAD:main
+                git push https://${GIT_USER}:${GIT_PASS}@github.com/kartavynirwel-code/DevHub-2.0.git HEAD:manifests
             """
-           }
-     }
+        }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-        stage('Verify Deployment') {
+}
+    stage('Verify Deployment') {
             steps {
                 sh """
                     export KUBECONFIG=${KUBECONFIG}
