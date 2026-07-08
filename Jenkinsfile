@@ -152,7 +152,7 @@ pipeline {
 
                 git add k8s/manifests/03-backend-frontend.yaml
                 git commit -m "CI: update backend/frontend image to ${IMAGE_TAG} [skip ci]"
-                git push https://${GIT_USER}:${GIT_PASS}@github.com/DevHub-2.0.git HEAD:main
+                git push https://${GIT_USER}:${GIT_PASS}@github.com/kartavynirwel-code/DevHub-2.0.git HEAD:main
             """
            }
      }
