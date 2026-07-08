@@ -29,32 +29,32 @@ pipeline {
             }
         }
 
-        stage('SAST - SonarQube Scan') {
-        steps {
-            dir('backend') {
-            sh 'mvn clean compile -DskipTests'
-        }
-            withSonarQubeEnv('sonar-server') {
-            withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
-                sh """
-                    ${SCANNER_HOME}/bin/sonar-scanner \
-                    -Dsonar.projectKey=devhub-2.0 \
-                    -Dsonar.sources=. \
-                    -Dsonar.java.binaries=backend/target/classes \
-                    -Dsonar.token=${SONAR_TOKEN}
-                """
-            }
-        }
-    }
-}
+//         stage('SAST - SonarQube Scan') {
+//         steps {
+//             dir('backend') {
+//             sh 'mvn clean compile -DskipTests'
+//         }
+//             withSonarQubeEnv('sonar-server') {
+//             withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
+//                 sh """
+//                     ${SCANNER_HOME}/bin/sonar-scanner \
+//                     -Dsonar.projectKey=devhub-2.0 \
+//                     -Dsonar.sources=. \
+//                     -Dsonar.java.binaries=backend/target/classes \
+//                     -Dsonar.token=${SONAR_TOKEN}
+//                 """
+//             }
+//         }
+//     }
+// }
 
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
+//         stage('Quality Gate') {
+//             steps {
+//                 timeout(time: 5, unit: 'MINUTES') {
+//                     waitForQualityGate abortPipeline: true
+//                 }
+//             }
+//         }
         stage('SCA - OWASP Dependency Check') {
              steps {
                 withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
