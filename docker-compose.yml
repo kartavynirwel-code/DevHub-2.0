@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: devhub-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: devhub_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: devhub-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - JWT_SECRET=9b4a942c0371414747bb489aa39378d37ce2f4ec909dc712e22f1fe57fb7b59a
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=devhub_db
+      - DB_USER=root
+      - DB_PASSWORD=root
+    depends_on:
+      db:
+        condition: service_healthy
+    
+
+  frontend:
+    build: ./frontend
+    container_name: devhub-frontend
+    ports:
+      - "5173:8080"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
