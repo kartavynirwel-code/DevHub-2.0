@@ -140,6 +140,7 @@ pipeline {
                 """
             }
         }
+        
         stage('Update Manifest Repo') {
     steps {
         withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
