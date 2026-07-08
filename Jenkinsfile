@@ -140,35 +140,23 @@ pipeline {
                 """
             }
         }
-
-        stage('Deploy to K3s') {
+        stage('Update Manifest Repo') {
             steps {
-                sh """
-                    export KUBECONFIG=${KUBECONFIG}
+              withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+               sh """
+                git config user.email "jenkins@devhub.com"
+                git config user.name "Jenkins CI"
 
-                    kubectl apply -f k8s/manifests/01-namespace-secret.yaml --validate=false
-                    kubectl apply -f k8s/manifests/02-mysql.yaml --validate=false
-                    kubectl apply -f k8s/manifests/03-backend-frontend.yaml --validate=false
-                    kubectl apply -f k8s/manifests/04-networkpolicy.yaml --validate=false
+                sed -i "s|image: .*devhub-backend.*|image: ${BACKEND_IMAGE}:${IMAGE_TAG}|" k8s/manifests/03-backend-frontend.yaml
+                sed -i "s|image: .*devhub-frontend.*|image: ${FRONTEND_IMAGE}:${IMAGE_TAG}|" k8s/manifests/03-backend-frontend.yaml
 
-                    kubectl set image deployment/devhub-backend \
-                        backend=${BACKEND_IMAGE}:${IMAGE_TAG} \
-                        -n ${K8S_NAMESPACE}
-
-                    kubectl set image deployment/devhub-frontend \
-                        frontend=${FRONTEND_IMAGE}:${IMAGE_TAG} \
-                        -n ${K8S_NAMESPACE}
-
-                    kubectl rollout status deployment/devhub-backend \
-                        -n ${K8S_NAMESPACE} \
-                        --timeout=180s
-
-                    kubectl rollout status deployment/devhub-frontend \
-                        -n ${K8S_NAMESPACE} \
-                        --timeout=180s
-                """
-            }
-        }
+                git add k8s/manifests/03-backend-frontend.yaml
+                git commit -m "CI: update backend/frontend image to ${IMAGE_TAG} [skip ci]"
+                git push https://${GIT_USER}:${GIT_PASS}@github.com/your-repo.git HEAD:main
+            """
+           }
+     }
+    }
 
         stage('Verify Deployment') {
             steps {
@@ -189,20 +177,6 @@ pipeline {
                 """
             }
         }
-        stage('DAST - ZAP Baseline Scan') {
-    steps {
-        sh '''
-            docker run --rm -u $(id -u):$(id -g) \
-            --network host \
-            -e HOME=/zap/wrk \
-            -v $(pwd):/zap/wrk/:rw \
-            zaproxy/zap-stable zap-baseline.py \
-            -t http://13.200.73.146:31151/ \
-            -r zap-report.html \
-            -I -m 1
-        '''
-    }
-}
     }
 
     post {
