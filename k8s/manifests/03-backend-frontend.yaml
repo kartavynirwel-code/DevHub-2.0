@@ -16,7 +16,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: backend
-          image: kartavyanirwel/devhub-backend:34
+          image: kartavyanirwel/devhub-backend:35
           ports:
             - containerPort: 8080
           env:
@@ -80,7 +80,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: frontend
-          image: kartavyanirwel/devhub-frontend:34
+          image: kartavyanirwel/devhub-frontend:35
           ports:
             - containerPort: 8080
           securityContext:
