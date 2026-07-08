@@ -1,5 +1,0 @@
-[allowlist]
-  description = "Example/placeholder files - not real secrets"
-  paths = [
-    '''k8s/manifests/main\.yaml\.example$'''
-  ]
